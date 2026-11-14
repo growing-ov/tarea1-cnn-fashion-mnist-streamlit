@@ -1,0 +1,19 @@
+# Entorno virtual local
+.venv/
+venv/
+
+# Python
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+
+# Sistema / editores
+.DS_Store
+.vscode/
+.idea/
+
+# Logs y temporales
+*.log
+streamlit.log
+
+# Nota: models/*.keras SÍ se versiona (modelo entrenado entregable)
