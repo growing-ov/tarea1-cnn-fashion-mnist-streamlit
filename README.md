@@ -7,6 +7,10 @@ confianza.
 
 ---
 
+**Repositorio:** https://github.com/growing-ov/tarea1-cnn-fashion-mnist-streamlit
+
+---
+
 ## Puesta en marcha
 
 ```bash
