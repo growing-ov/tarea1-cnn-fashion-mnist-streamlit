@@ -1,4 +1,4 @@
-# Probado con Python 3.12 (TensorFlow aún no soporta Python 3.13+ en todas las plataformas)
+# Entorno probado con Python 3.12 (TensorFlow todavía no publica ruedas para 3.13+)
 tensorflow>=2.16
 numpy
 pandas
@@ -6,8 +6,9 @@ matplotlib
 seaborn
 scikit-learn
 pillow
-streamlit>=1.35
-# Solo para ejecutar el notebook localmente
+# st.image(width="stretch") se introdujo en Streamlit 1.49.0
+streamlit>=1.49
+# Solo hacen falta para ejecutar el notebook en local
 jupyter
 nbconvert
 ipykernel

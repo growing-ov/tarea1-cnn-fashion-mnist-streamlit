@@ -1,18 +1,17 @@
 """
-Entrenamiento de una Red Neuronal Convolucional (CNN) sobre Fashion-MNIST.
+Entrenamiento de la CNN que classify las prendas de Fashion-MNIST.
 
-Uso:
-    python src/train.py                      # entrenamiento por defecto
+    python src/train.py
     python src/train.py --epochs 30 --batch-size 128
     python src/train.py --output models/fashion_mnist_cnn.keras
 
-El script:
-  1. Descarga Fashion-MNIST desde keras.datasets (sin autenticación).
-  2. Normaliza las imágenes a [0, 1] y las divide en entrenamiento/validación/prueba.
-  3. Construye una CNN con Data Augmentation integrado (capas de preprocesamiento de Keras).
-  4. Entrena con EarlyStopping (y ReduceLROnPlateau) monitoreando la pérdida de validación.
-  5. Evalúa en el conjunto de prueba (accuracy, precision, recall, F1, classification_report).
-  6. Guarda el modelo (.keras), el historial y las métricas en models/ y reports/.
+Cada paso del proceso:
+  1. Bajar Fashion-MNIST desde `keras.datasets` (sin claves ni cuentas).
+  2. Dejar los píxeles en [0, 1] y repartir los datos en entrenamiento/validación/prueba.
+  3. Montar la red, con el aumento de datos integrado como capas de Keras.
+  4. Entrenar con `EarlyStopping` y `ReduceLROnPlateau`, vigilando `val_loss`.
+  5. Medir sobre el conjunto de prueba: accuracy, precision, recall, F1 y reporte por clase.
+  6. Escribir el modelo (`.keras`), el histórico y las métricas en `models/` y `reports/`.
 """
 
 from __future__ import annotations
@@ -30,7 +29,7 @@ import tensorflow as tf  # noqa: E402
 from tensorflow import keras  # noqa: E402
 from tensorflow.keras import layers  # noqa: E402
 
-# Nombres de las 10 clases de Fashion-MNIST (en español, en el orden de las etiquetas 0-9)
+# Etiquetas de Fashion-MNIST traducidas al español, en el orden 0-9 del dataset
 CLASS_NAMES = [
     "Camiseta/top",
     "Pantalón",
@@ -53,24 +52,25 @@ DEFAULT_MODEL_PATH = ROOT / "models" / "fashion_mnist_cnn.keras"
 
 
 def set_seed(seed: int = SEED) -> None:
-    """Fija semillas para reproducibilidad (aproximada en CPU)."""
+    """Fija las semillas de Python, NumPy y TensorFlow (reproducibilidad aproximada en CPU)."""
     keras.utils.set_random_seed(seed)
 
 
 def load_data(val_size: int = 6000, seed: int = SEED):
-    """Carga Fashion-MNIST, normaliza y divide en train/val/test.
+    """Baja Fashion-MNIST, normaliza y separa los tres conjuntos.
 
-    - Conjunto original: 60.000 de entrenamiento y 10.000 de prueba.
-    - Se separan `val_size` imágenes del entrenamiento (estratificado) para validación.
-    - Las imágenes se escalan a float32 en [0, 1] y se añade el canal (28, 28, 1).
+    - El dataset original trae 60.000 imágenes de entrenamiento y 10.000 de prueba.
+    - `val_size` imágenes salen del entrenamiento (un reparto estratificado por clase) y
+      se reservan para validar.
+    - Los píxeles pasan a float32 en [0, 1] y se les añade el canal (28, 28, 1).
     """
     (x_train_full, y_train_full), (x_test, y_test) = keras.datasets.fashion_mnist.load_data()
 
-    # Normalización a [0, 1] y canal explícito
+    # Píxeles en [0, 1] y canal explícito
     x_train_full = (x_train_full.astype("float32") / 255.0)[..., np.newaxis]
     x_test = (x_test.astype("float32") / 255.0)[..., np.newaxis]
 
-    # División estratificada entrenamiento/validación
+    # Se aparta el conjunto de validación, equilibrando clases
     rng = np.random.default_rng(seed)
     val_idx = []
     per_class = val_size // NUM_CLASSES
@@ -87,7 +87,7 @@ def load_data(val_size: int = 6000, seed: int = SEED):
 
 
 def build_augmentation() -> keras.Sequential:
-    """Data Augmentation: solo actúa durante el entrenamiento (training=True)."""
+    """Aumento de datos: solo entra en juego durante el entrenamiento (training=True)."""
     return keras.Sequential(
         [
             layers.RandomFlip("horizontal"),
@@ -100,7 +100,7 @@ def build_augmentation() -> keras.Sequential:
 
 
 def build_model(learning_rate: float = 1e-3) -> keras.Model:
-    """CNN de 3 bloques convolucionales + BatchNorm + Dropout."""
+    """Tres bloques convolucionales con BatchNorm y Dropout, y un clasificador denso."""
     inputs = keras.Input(shape=(IMG_SIZE, IMG_SIZE, 1), name="imagen")
     x = build_augmentation()(inputs)
 
@@ -149,7 +149,7 @@ def get_callbacks(patience: int = 5) -> list:
 
 
 def evaluate(model: keras.Model, x_test, y_test) -> dict:
-    """Calcula métricas de clasificación sobre el conjunto de prueba."""
+    """Mide el modelo sobre el conjunto de prueba y devuelve accuracy, precision, recall y F1."""
     from sklearn.metrics import (
         accuracy_score,
         classification_report,
@@ -204,7 +204,7 @@ def main() -> None:
         print(f"{k:>16}: {metrics[k]:.4f}")
     print("\n" + metrics["classification_report"])
 
-    # Guardar modelo y artefactos
+    # Modelo y artefactos de esta ejecución
     args.output.parent.mkdir(parents=True, exist_ok=True)
     model.save(args.output)
     reports = ROOT / "reports"

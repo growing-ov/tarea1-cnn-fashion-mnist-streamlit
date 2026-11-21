@@ -1,15 +1,15 @@
 """
-Predicción con el modelo CNN entrenado (Fashion-MNIST).
+Predicción con la CNN entrenada sobre Fashion-MNIST.
 
-Uso:
     python src/predict.py ruta/a/imagen.png
     python src/predict.py ruta/a/imagen.jpg --model models/fashion_mnist_cnn.keras --top 3
 
-Preprocesamiento aplicado a cualquier imagen de entrada (para parecerse a Fashion-MNIST):
-  1. Conversión a escala de grises.
-  2. Inversión automática si el fondo es claro (Fashion-MNIST tiene prenda clara sobre fondo negro).
-  3. Recorte al contenido + relleno cuadrado, y redimensionado a 28x28.
-  4. Normalización a [0, 1].
+Para que una foto cualquiera se parezca a lo que el modelo vio en el entrenamiento se aplica esta
+cadena de pasos:
+  1. La imagen se pasa a escala de grises.
+  2. Si el fondo es claro se invierte, porque en Fashion-MNIST la prenda es clara sobre fondo negro.
+  3. Se recorta el contenido, se rellena hasta un lienzo cuadrado y se redimensiona a 28×28.
+  4. Los píxeles se normalizan a [0, 1].
 """
 
 from __future__ import annotations
@@ -43,7 +43,7 @@ CLASS_NAMES = [
 
 
 def load_model(path: str | Path = DEFAULT_MODEL_PATH):
-    """Carga el modelo .keras previamente entrenado."""
+    """Carga el archivo .keras con el modelo ya entrenado."""
     from tensorflow import keras
 
     path = Path(path)
@@ -55,23 +55,23 @@ def load_model(path: str | Path = DEFAULT_MODEL_PATH):
 
 
 def preprocess_image(img: Image.Image, auto_invert: bool = True) -> np.ndarray:
-    """Convierte una imagen PIL arbitraria en un tensor (1, 28, 28, 1) en [0, 1]."""
+    """Convierte cualquier imagen PIL en un tensor (1, 28, 28, 1) con valores en [0, 1]."""
     img = ImageOps.exif_transpose(img)
     if img.mode in ("RGBA", "LA") or (img.mode == "P" and "transparency" in img.info):
-        # Componer sobre fondo blanco para manejar transparencias
+        # Las transparencias se componen sobre fondo blanco
         img = img.convert("RGBA")
         fondo = Image.new("RGBA", img.size, (255, 255, 255, 255))
         img = Image.alpha_composite(fondo, img)
     gray = img.convert("L")
     arr = np.asarray(gray, dtype=np.float32)
 
-    # Si el borde es claro, asumimos fondo claro -> invertimos
+    # Si el borde es claro, damos por hecho que el fondo es claro: se invierte
     if auto_invert:
         borde = np.concatenate([arr[0, :], arr[-1, :], arr[:, 0], arr[:, -1]])
         if borde.mean() > 127:
             arr = 255.0 - arr
 
-    # Recortar al contenido (píxeles significativos) y dejar margen cuadrado
+    # Recorte al contenido (píxeles con señal) y encuadre cuadrado con margen
     mask = arr > 30
     if mask.any() and arr.shape[0] > IMG_SIZE:
         ys, xs = np.where(mask)
@@ -91,7 +91,7 @@ def preprocess_image(img: Image.Image, auto_invert: bool = True) -> np.ndarray:
 
 
 def predict(model, img: Image.Image, top_k: int = 3, auto_invert: bool = True) -> dict:
-    """Devuelve la clase predicha, su confianza, el top-k y el vector de probabilidades."""
+    """Devuelve la clase más probable, su confianza, el top-k y todas las probabilidades."""
     x = preprocess_image(img, auto_invert=auto_invert)
     probs = model.predict(x, verbose=0)[0]
     order = np.argsort(probs)[::-1]

@@ -1,8 +1,10 @@
 """
-Aplicación Streamlit: clasificador de prendas (Fashion-MNIST) con una CNN entrenada.
+Interfaz web del clasificador de prendas (Fashion-MNIST) construido con una CNN.
 
-Ejecutar:
     streamlit run app.py
+
+La app no entrena nada: se limita a cargar el modelo que ya está en `models/` y a responder
+preguntas del usuario sobre una imagen.
 """
 
 from __future__ import annotations
@@ -25,14 +27,14 @@ st.set_page_config(page_title="Clasificador CNN · Fashion-MNIST", page_icon="�
 
 @st.cache_resource(show_spinner="Cargando el modelo entrenado…")
 def get_model():
-    """Carga una sola vez el modelo previamente entrenado (models/*.keras)."""
+    """Devuelve el modelo entrenado, cargándolo del disco una sola vez por sesión."""
     return load_model(DEFAULT_MODEL_PATH)
 
 
 st.title("👕 Clasificador de prendas con una CNN")
 st.write(
-    "Sube una imagen de una prenda o calzado. El modelo (una red neuronal convolucional "
-    "entrenada sobre **Fashion-MNIST**) predice su clase entre: "
+    "Sube la foto de una prenda o de un calzado y la red convolcional dirá de qué tipo se trata. "
+    "El modelo se entrenó sobre **Fashion-MNIST**, así que reconoce estas diez categorías: "
     + ", ".join(f"*{c}*" for c in CLASS_NAMES)
     + "."
 )
@@ -101,3 +103,12 @@ if res["confianza"] < 0.5:
         "Confianza baja: la imagen puede diferir mucho de Fashion-MNIST "
         "(prenda centrada, una sola pieza, fondo uniforme)."
     )
+
+with st.expander("¿Cómo se ha procesado la imagen?"):
+    st.markdown(
+        "1. Conversión a escala de grises.\n"
+        "2. Inversión automática si el fondo es claro.\n"
+        "3. Recorte del objeto y relleno hasta dejar un lienzo cuadrado.\n"
+        "4. Redimensionado a 28×28 y normalización a [0, 1].\n"
+    )
+    st.caption("El mismo preprocesamiento que aplica `src/predict.py`.")
